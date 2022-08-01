@@ -38,6 +38,13 @@
         "**/*.spec.tsx"
     ] }],
     "rules": {
+        "prettier/prettier": [
+            "error",
+            {
+                "jsxBracketsSameLine": false,
+                "endOfLine": "auto"
+            }
+        ],
         "import/order": [
             "error",
             {
