@@ -1,52 +1,59 @@
-import { ReactElement, useEffect, useState } from 'react';
+import { ReactElement, useEffect, useState, FormEvent } from 'react';
 
-import { AxiosResponse } from 'axios';
-
-import { StarshipsResponseType, StarshipType, swAPI } from 'api';
 import { useDebounce } from 'hooks';
+import { useGetStarshipsQuery } from 'store/starships';
 
 import './Search.css';
 
-const SEARCH_DELAY = 1000;
+const SEARCH_DELAY = 500;
+const BUTTON_TEXT = 'Search';
 
-const Search = (): ReactElement => {
-  const [search, setSearch] = useState<string>('');
-  const [dropDownList, setDropDownList] = useState<StarshipType[]>([]);
-  const debouncedSearchTerm = useDebounce(search, SEARCH_DELAY);
+type SearchPropsType = {
+  setSearchValue: (value: string) => void;
+  setSubmittedSearchValue: (value: string) => void;
+  searchValue: string;
+  onFormSubmit: () => void;
+};
+
+const Search = ({
+  setSearchValue,
+  searchValue,
+  onFormSubmit,
+  setSubmittedSearchValue,
+}: SearchPropsType): ReactElement => {
+  const [dropdown, setDropdown] = useState<boolean>(false);
+  const [selectClicked, setSelectClicked] = useState<boolean>(false);
+  const debouncedSearchTerm = useDebounce(searchValue, SEARCH_DELAY);
+
+  const { data: starships } = useGetStarshipsQuery(debouncedSearchTerm, {
+    skip: !debouncedSearchTerm,
+  });
 
   const handleSearchChange = (e: any): void => {
-    setSearch(e.target.value);
+    setSearchValue(e.target.value);
+    setSelectClicked(false);
   };
-  const handleSelectClick = (name: string) => (): void => {
-    setSearch(name);
+  const handleSelectClick = (name: string) => () => {
+    setSubmittedSearchValue(name);
+    setSearchValue(name);
+    setSelectClicked(true);
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    onFormSubmit();
   };
 
   useEffect(() => {
-    const fetchData = async (): Promise<void> => {
-      try {
-        const data: AxiosResponse<StarshipsResponseType> = await swAPI.getStarship({
-          search: debouncedSearchTerm,
-        });
-
-        setDropDownList(data.data.results);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-
-    if (search) {
-      fetchData().catch(console.error);
-    }
-  }, [debouncedSearchTerm]);
+    setDropdown(!selectClicked && !!searchValue && starships?.length! > 0);
+  }, [searchValue, starships, selectClicked]);
 
   useEffect(() => {
-    if (!search) {
-      setDropDownList([]);
-    }
-  }, [search]);
+    if (selectClicked) setSearchValue('');
+  }, [selectClicked]);
 
   return (
-    <form method="GET">
+    <form onSubmit={handleSubmit}>
       <div className="relative text-gray-600 focus-within:text-gray-400 flex w-full">
         <span className="absolute inset-y-0 left-0 flex items-center pl-2">
           <svg
@@ -62,7 +69,7 @@ const Search = (): ReactElement => {
           </svg>
         </span>
         <input
-          value={search}
+          value={searchValue}
           onChange={handleSearchChange}
           type="search"
           name="input-search"
@@ -71,20 +78,19 @@ const Search = (): ReactElement => {
           autoComplete="off"
         />
         <button
-          type="button"
+          type="submit"
           className="bg-gray-900 text-white p-4 rounded-xl hover:bg-gray-700 duration-300 focus:scale-95 transform"
-          onClick={() => true}
         >
-          Search
+          {BUTTON_TEXT}
         </button>
-        <ul
-          className="hide-scrollbar flex flex-col absolute inset-14 left-0 h-96 overflow-auto"
-          style={{
-            right: '5.45rem',
-          }}
-        >
-          {dropDownList.map(({ name, url }) => {
-            return (
+        {dropdown && (
+          <ul
+            className="hide-scrollbar flex flex-col absolute inset-14 left-0 h-96 overflow-auto"
+            style={{
+              right: '5.45rem',
+            }}
+          >
+            {starships?.map(({ name, url }) => (
               <li
                 className="bg-gray-300 text-black p-4 hover:bg-gray-400 cursor-pointer"
                 key={url}
@@ -92,9 +98,9 @@ const Search = (): ReactElement => {
               >
                 {name}
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        )}
       </div>
     </form>
   );

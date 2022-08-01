@@ -1,15 +1,21 @@
-import { ReactElement, useState } from 'react';
+import { ReactElement } from 'react';
 
-import { StarshipType } from 'api';
+import { ListItem } from '../ListItem';
 
-const SearchList = (): ReactElement => {
-  const [resultList] = useState<StarshipType[]>([]);
+import { useGetStarshipsQuery } from 'store/starships';
+
+type SearchListPropsType = {
+  searchValue: string;
+};
+
+const SearchList = ({ searchValue }: SearchListPropsType): ReactElement => {
+  const { data: starships } = useGetStarshipsQuery(searchValue, { skip: !searchValue });
 
   return (
     <div>
-      {resultList.map(result => {
-        return <div key={result.url}>{result.name}</div>;
-      })}
+      {starships?.map(starship => (
+        <ListItem key={starship.url} starship={starship} />
+      ))}
     </div>
   );
 };

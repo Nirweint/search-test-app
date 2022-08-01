@@ -1,11 +1,3 @@
-import { instance } from './config';
-
-export const swAPI = {
-  getStarship(payload: { search: string }) {
-    return instance.get<StarshipsResponseType>('starships', { params: payload });
-  },
-};
-
 export type StarshipsResponseType = {
   count: number;
   next: string | null;
